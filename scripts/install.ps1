@@ -1,7 +1,7 @@
 # Twin install script — Windows
-# One-liner: irm https://raw.githubusercontent.com/harshsharma-1804/copy-claude/main/scripts/install.ps1 | iex
+# One-liner: irm https://raw.githubusercontent.com/harshsharma-1804/twin/main/scripts/install.ps1 | iex
 
-$REPO    = "harshsharma-1804/copy-claude"
+$REPO    = "harshsharma-1804/twin"
 $BRANCH  = "main"
 $RAW     = "https://raw.githubusercontent.com/$REPO/$BRANCH"
 $LIB_DIR = "$env:LOCALAPPDATA\Twin"

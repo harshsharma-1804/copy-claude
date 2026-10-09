@@ -17,7 +17,7 @@ Apps like Claude, Notion, Slack, and Obsidian don't support switching between mu
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/harshsharma-1804/copy-claude/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/harshsharma-1804/twin/main/scripts/install.sh | bash
 ```
 
 Restart your terminal (or `source ~/.zshrc`).
@@ -25,7 +25,7 @@ Restart your terminal (or `source ~/.zshrc`).
 ### Windows
 
 ```powershell
-irm https://raw.githubusercontent.com/harshsharma-1804/copy-claude/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/harshsharma-1804/twin/main/scripts/install.ps1 | iex
 ```
 
 Restart your terminal after install.

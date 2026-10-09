@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Twin install script — macOS / Linux
-# One-liner: curl -fsSL https://raw.githubusercontent.com/harshsharma-1804/copy-claude/main/scripts/install.sh | bash
+# One-liner: curl -fsSL https://raw.githubusercontent.com/harshsharma-1804/twin/main/scripts/install.sh | bash
 
 set -euo pipefail
 
-REPO="harshsharma-1804/copy-claude"
+REPO="harshsharma-1804/twin"
 BRANCH="main"
 RAW="https://raw.githubusercontent.com/$REPO/$BRANCH"
 LIB_DIR="$HOME/.local/lib/twin"

@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-REPO="harshsharma-1804/copy-claude"
+REPO="harshsharma-1804/twin"
 BRANCH="main"
 RAW="https://raw.githubusercontent.com/$REPO/$BRANCH"
 
