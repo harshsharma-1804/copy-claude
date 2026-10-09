@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+# twin — run any Electron app with multiple isolated profiles
+# Usage: twin <command> <app> [profile-name]
+
+set -euo pipefail
+
+VERSION="1.0.0"
+
+# ── Resolve real script location (symlink-safe) ─────────────────────────────
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE" ]]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+TWIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PLATFORM_DIR="$TWIN_ROOT/platform"
+export TWIN_REGISTRY_DIR="$TWIN_ROOT/registry"
+
+# ── Detect OS ────────────────────────────────────────────────────────────────
+detect_os() {
+    case "$(uname -s)" in
+        Darwin)             echo "macos"   ;;
+        Linux)              echo "linux"   ;;
+        CYGWIN*|MINGW*|MSYS*) echo "windows" ;;
+        *)                  echo "unknown" ;;
+    esac
+}
+
+OS=$(detect_os)
+
+if [[ "$OS" == "unknown" ]]; then
+    echo "Error: Unsupported operating system."
+    exit 1
+fi
+
+if [[ "$OS" == "windows" ]]; then
+    echo "Error: On Windows use twin.ps1 instead."
+    echo "  powershell -File twin.ps1 <command> <app> <profile-name>"
+    exit 1
+fi
+
+# ── Load platform implementation ─────────────────────────────────────────────
+# shellcheck source=/dev/null
+source "$PLATFORM_DIR/${OS}.sh"
+
+# ── Resolve app registry ──────────────────────────────────────────────────────
+resolve_registry() {
+    local app_key="${1,,}"  # lowercase
+    local reg_file="$TWIN_REGISTRY_DIR/${app_key}.sh"
+
+    if [[ -f "$reg_file" ]]; then
+        echo "$reg_file"
+        return 0
+    fi
+
+    echo "Error: Unknown app '${app_key}'." >&2
+    echo "" >&2
+    echo "Built-in apps:" >&2
+    for f in "$TWIN_REGISTRY_DIR"/*.sh; do
+        [[ -f "$f" ]] && echo "  $(basename "$f" .sh)" >&2
+    done
+    echo "" >&2
+    echo "To add a new app, create: $TWIN_REGISTRY_DIR/${app_key}.sh" >&2
+    exit 1
+}
+
+# ── Usage ─────────────────────────────────────────────────────────────────────
+usage() {
+    cat << EOF
+twin v${VERSION} — run any app with multiple isolated profiles
+
+Usage:
+  twin new <app> <profile-name>     Create a new isolated profile
+  twin open <app> <profile-name>    Open a profile
+  twin remove <app> <profile-name>  Remove a profile
+  twin list [app]                   List profiles (all apps, or one app)
+  twin apps                         List supported apps
+  twin help                         Show this help
+
+Examples:
+  twin new claude "Work"
+  twin new claude "Personal"
+  twin new notion "Client A"
+  twin new slack "Freelance"
+  twin open claude "Work"
+  twin remove notion "Client A"
+  twin list
+  twin list claude
+
+Supported apps: claude, notion, slack, obsidian, discord
+Add more by dropping a .sh file into: $TWIN_REGISTRY_DIR/
+
+EOF
+}
+
+# ── Dispatch ──────────────────────────────────────────────────────────────────
+COMMAND="${1:-help}"
+shift || true
+
+case "$COMMAND" in
+    new|create)
+        APP_KEY="${1:-}"
+        shift || true
+        PROFILE_NAME="${*:-}"
+        if [[ -z "$APP_KEY" || -z "$PROFILE_NAME" ]]; then
+            echo "Usage: twin new <app> <profile-name>"
+            echo "Example: twin new claude \"Work\""
+            exit 1
+        fi
+        REG=$(resolve_registry "$APP_KEY")
+        "${OS}_create" "${APP_KEY,,}" "$PROFILE_NAME" "$REG"
+        ;;
+
+    open|launch)
+        APP_KEY="${1:-}"
+        shift || true
+        PROFILE_NAME="${*:-}"
+        if [[ -z "$APP_KEY" || -z "$PROFILE_NAME" ]]; then
+            echo "Usage: twin open <app> <profile-name>"
+            exit 1
+        fi
+        REG=$(resolve_registry "$APP_KEY")
+        "${OS}_open" "${APP_KEY,,}" "$PROFILE_NAME" "$REG"
+        ;;
+
+    remove|delete|rm)
+        APP_KEY="${1:-}"
+        shift || true
+        PROFILE_NAME="${*:-}"
+        if [[ -z "$APP_KEY" || -z "$PROFILE_NAME" ]]; then
+            echo "Usage: twin remove <app> <profile-name>"
+            exit 1
+        fi
+        REG=$(resolve_registry "$APP_KEY")
+        "${OS}_remove" "${APP_KEY,,}" "$PROFILE_NAME" "$REG"
+        ;;
+
+    list|ls)
+        APP_KEY="${1:-}"
+        "${OS}_list" "$APP_KEY"
+        ;;
+
+    apps)
+        echo "Supported apps:"
+        for f in "$TWIN_REGISTRY_DIR"/*.sh; do
+            [[ -f "$f" ]] && echo "  $(basename "$f" .sh)"
+        done
+        ;;
+
+    update)
+        bash "$TWIN_ROOT/scripts/update.sh"
+        ;;
+
+    version|-v|--version)
+        echo "twin v${VERSION}"
+        ;;
+
+    help|-h|--help)
+        usage
+        ;;
+
+    *)
+        echo "Error: Unknown command '$COMMAND'"
+        echo ""
+        usage
+        exit 1
+        ;;
+esac
